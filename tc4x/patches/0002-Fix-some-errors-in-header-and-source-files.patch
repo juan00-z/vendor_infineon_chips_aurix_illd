@@ -1,0 +1,325 @@
+From 48652923ebabe398160f7126a6e0947b6874f667 Mon Sep 17 00:00:00 2001
+From: v-maomingju <v-maomingju@xiaomi.com>
+Date: Wed, 10 Dec 2025 22:54:39 +0800
+Subject: [PATCH 2/3] Fix-some-errors-in-header-and-source-files
+
+Change-Id: Ica41a1d36807bcb78009c4c9ae1fd3169397d2f9
+---
+ src/Libraries/Infra/Sfr/TC4Dx/IfxCan_regdef.h | 18 +++++++
+ .../iLLD/TC4xx/CpuGeneric/Adc/Std/IfxAdc.h    |  1 -
+ .../CpuGeneric/Asclin/Asc/IfxAsclin_Asc.h     |  1 -
+ .../TC4xx/CpuGeneric/Clock/Std/IfxClock.c     |  3 +-
+ .../iLLD/TC4xx/Tricore/Flash/Std/IfxFlash.h   | 42 +++++++++++-----
+ .../iLLD/TC4xx/Tricore/Pms/Std/IfxPmsPm.h     | 34 +++++++++++++
+ .../iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.c       | 48 ++++++++++++++++++-
+ .../iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.h       |  7 +++
+ .../TC4xx/Tricore/_Impl/IfxFlash_cfg_TC4Dx.h  | 10 +++-
+ 9 files changed, 146 insertions(+), 18 deletions(-)
+
+diff --git a/src/Libraries/Infra/Sfr/TC4Dx/IfxCan_regdef.h b/src/Libraries/Infra/Sfr/TC4Dx/IfxCan_regdef.h
+index f4d8faa..cb09811 100644
+--- a/src/Libraries/Infra/Sfr/TC4Dx/IfxCan_regdef.h
++++ b/src/Libraries/Infra/Sfr/TC4Dx/IfxCan_regdef.h
+@@ -58,6 +58,24 @@
+ #define IFXCAN_REGDEF_H 1
+ /******************************************************************************/
+ #include "Ifx_TypesReg.h"
++
++/**
++ * resolve compilation issues caused by duplicate identifiers
++ * confict with include/termios.h
++ */
++#ifdef CR0
++#undef CR0
++#endif
++#ifdef CR1
++#undef CR1
++#endif
++#ifdef CR2
++#undef CR2
++#endif
++#ifdef CR3
++#undef CR3
++#endif
++
+ /******************************************************************************/
+ 
+ /******************************************************************************/
+diff --git a/src/Libraries/iLLD/TC4xx/CpuGeneric/Adc/Std/IfxAdc.h b/src/Libraries/iLLD/TC4xx/CpuGeneric/Adc/Std/IfxAdc.h
+index bd34160..efe4134 100644
+--- a/src/Libraries/iLLD/TC4xx/CpuGeneric/Adc/Std/IfxAdc.h
++++ b/src/Libraries/iLLD/TC4xx/CpuGeneric/Adc/Std/IfxAdc.h
+@@ -129,7 +129,6 @@
+ #include "Ap/Std/IfxApApu.h"
+ #include "Ap/Std/IfxApProt.h"
+ #include "_Utilities/Ifx_Assert.h"
+-#include "SysSe/Bsp/Bsp.h"
+ 
+ /******************************************************************************/
+ /*-----------------------------------Macros-----------------------------------*/
+diff --git a/src/Libraries/iLLD/TC4xx/CpuGeneric/Asclin/Asc/IfxAsclin_Asc.h b/src/Libraries/iLLD/TC4xx/CpuGeneric/Asclin/Asc/IfxAsclin_Asc.h
+index 19dd0b5..e9d49ba 100644
+--- a/src/Libraries/iLLD/TC4xx/CpuGeneric/Asclin/Asc/IfxAsclin_Asc.h
++++ b/src/Libraries/iLLD/TC4xx/CpuGeneric/Asclin/Asc/IfxAsclin_Asc.h
+@@ -323,7 +323,6 @@
+ 
+ #include "Asclin/Std/IfxAsclin.h"
+ #include "_Lib/DataHandling/Ifx_Fifo.h"
+-#include "SysSe/Bsp/Bsp.h"
+ 
+ /******************************************************************************/
+ /*-----------------------------Data Structures--------------------------------*/
+diff --git a/src/Libraries/iLLD/TC4xx/CpuGeneric/Clock/Std/IfxClock.c b/src/Libraries/iLLD/TC4xx/CpuGeneric/Clock/Std/IfxClock.c
+index 5f7be89..c3a453b 100644
+--- a/src/Libraries/iLLD/TC4xx/CpuGeneric/Clock/Std/IfxClock.c
++++ b/src/Libraries/iLLD/TC4xx/CpuGeneric/Clock/Std/IfxClock.c
+@@ -504,7 +504,8 @@ boolean IfxClock_configureCcuPll(const IfxClock_Config *pllCfg)
+ 
+             if (CLOCK_PERPLLSTAT.B.PWRSTAT == 1)
+             {
+-                if ((CLOCK_CCUSTAT.B.CLKSELP == 0x1) || (CLOCK_CCUSTAT.B.CLKSELP == 0x2))
++                // if ((CLOCK_CCUSTAT.B.CLKSELP == 0x1) || (CLOCK_CCUSTAT.B.CLKSELP == 0x2))
++                if (CLOCK_CCUSTAT.B.CLKSELP == 0x1)
+                 {
+                     CLOCK_PERPLLCON0.B.PLLPWR = 0;
+                 }
+diff --git a/src/Libraries/iLLD/TC4xx/Tricore/Flash/Std/IfxFlash.h b/src/Libraries/iLLD/TC4xx/Tricore/Flash/Std/IfxFlash.h
+index 074edf7..48427f0 100644
+--- a/src/Libraries/iLLD/TC4xx/Tricore/Flash/Std/IfxFlash.h
++++ b/src/Libraries/iLLD/TC4xx/Tricore/Flash/Std/IfxFlash.h
+@@ -529,7 +529,7 @@ IFX_EXTERN void IfxFlash_disableWriteProtection(uint32 flash, IfxFlash_UcbType u
+ /** \brief Waits until all flash operations are complete and the flash module is no longer busy.
+  * \return Return 0 on success.Success means none of the flash banks are in busy state.
+  */
+-IFX_INLINE boolean IfxFlash_waitUnbusyAll(void);
++IFX_INLINE boolean IfxFlash_waitUnbusyAll(uint32 timeout);
+ 
+ /** \brief Polls the selected status flag in flash status register until it turns to 0
+  * \param flash The flash instance or handle to check for busy status.
+@@ -545,7 +545,7 @@ IFX_INLINE boolean IfxFlash_waitUnbusyAll(void);
+  * \endcode
+  *
+  */
+-IFX_INLINE uint8 IfxFlash_waitUnbusy(uint32 flash, IfxFlash_FlashType flashType);
++IFX_INLINE uint8 IfxFlash_waitUnbusy(uint32 flash, IfxFlash_FlashType flashType, uint32 timeout);
+ 
+ /** \brief Function set the banks or subset of bank to sleep state.
+  * The command interface can only set to sleep those banks which are allocated to the command channel.
+@@ -1005,13 +1005,23 @@ IFX_INLINE void IfxFlash_writePageOnce(uint32 pageAddr)
+ }
+ 
+ 
+-IFX_INLINE boolean IfxFlash_waitUnbusyAll(void)
++IFX_INLINE boolean IfxFlash_waitUnbusyAll(uint32 timeout)
+ {
++    uint8 status = 0;
++    volatile uint32 timeoutticks;
++
++    timeoutticks = timeout ? timeout * IFXFLASH_OPERATION_TIMEOUT_1US : IFXFLASH_MAX_OPERATION_TIMEOUT;
+     while (DMU_HCI_STATUS.U & IFXFLASH_MASK_FLASH_BANK_STATUS)
+-    {}
++    {
++        if (timeoutticks-- == 0)
++        {
++            status = 1;
++            break;
++        }
++    }
+ 
+     __dsync();
+-    return 0;
++    return status;
+ }
+ 
+ 
+@@ -1057,20 +1067,28 @@ IFX_INLINE void IfxFlash_reallocateBank(uint32 bankselect)
+ }
+ 
+ 
+-IFX_INLINE uint8 IfxFlash_waitUnbusy(uint32 flash, IfxFlash_FlashType flashType)
++IFX_INLINE uint8 IfxFlash_waitUnbusy(uint32 flash, IfxFlash_FlashType flashType, uint32 timeout)
+ {
+-    if (flash == 0)
++    uint8 status = 0;
++    volatile uint32 timeoutticks;
++
++    if (flash != 0)
+     {
+-        while (DMU_HCI_STATUS.U & (1 << flashType))
+-        {}
++        return 1;    /*invalid flash selected */
+     }
+-    else
++
++    timeoutticks = timeout ? timeout * IFXFLASH_OPERATION_TIMEOUT_1US : IFXFLASH_MAX_OPERATION_TIMEOUT;
++    while (DMU_HCI_STATUS.U & (1 << flashType))
+     {
+-        return 1;    /*invalid flash selected */
++        if (timeoutticks-- == 0)
++        {
++            status = 1;
++            break;
++        }
+     }
+ 
+     __dsync();
+-    return 0;
++    return status;
+ }
+ 
+ 
+diff --git a/src/Libraries/iLLD/TC4xx/Tricore/Pms/Std/IfxPmsPm.h b/src/Libraries/iLLD/TC4xx/Tricore/Pms/Std/IfxPmsPm.h
+index 1dc4ee2..de90e83 100644
+--- a/src/Libraries/iLLD/TC4xx/Tricore/Pms/Std/IfxPmsPm.h
++++ b/src/Libraries/iLLD/TC4xx/Tricore/Pms/Std/IfxPmsPm.h
+@@ -1760,6 +1760,40 @@ IFX_INLINE boolean IfxPmsPm_getDtsStatus(Ifx_PMS *pms)
+ }
+ 
+ 
++IFX_INLINE uint16 IfxPmsPm_getStandbyRam0Size(Ifx_PMS *pms)
++{
++    uint16_t ramsel = pms->STANDBY.CON0.B.SBRAMSEL;
++
++    if (ramsel == IfxPmsPm_StandbyRamSupply_cpu0_64Kb ||
++        ramsel == IfxPmsPm_StandbyRamSupply_cpu0_64Kb_cpu1_64Kb ||
++        ramsel == IfxPmsPm_StandbyRamSupply_cpu0_64Kb_cpu1_128Kb)
++        return 64;
++    else if (ramsel == IfxPmsPm_StandbyRamSupply_cpu0_128Kb ||
++             ramsel == IfxPmsPm_StandbyRamSupply_cpu0_128Kb_cpu1_64Kb ||
++             ramsel == IfxPmsPm_StandbyRamSupply_cpu0_128Kb_cpu1_128Kb)
++        return 128;
++
++    return 0;
++}
++
++
++IFX_INLINE uint16 IfxPmsPm_getStandbyRam1Size(Ifx_PMS *pms)
++{
++    uint16_t ramsel = pms->STANDBY.CON0.B.SBRAMSEL;
++
++    if (ramsel == IfxPmsPm_StandbyRamSupply_cpu1_64Kb ||
++        ramsel == IfxPmsPm_StandbyRamSupply_cpu0_64Kb_cpu1_64Kb ||
++        ramsel == IfxPmsPm_StandbyRamSupply_cpu0_128Kb_cpu1_64Kb)
++        return 64;
++    else if (ramsel == IfxPmsPm_StandbyRamSupply_cpu1_128Kb ||
++             ramsel == IfxPmsPm_StandbyRamSupply_cpu0_64Kb_cpu1_128Kb ||
++             ramsel == IfxPmsPm_StandbyRamSupply_cpu0_128Kb_cpu1_128Kb)
++        return 128;
++
++    return 0;
++}
++
++
+ IFX_INLINE void IfxPmsPm_enableRtc(Ifx_PMS *pms, IfxPmsPm_Rtc enable)
+ {
+ #if (IFX_PROT_ENABLED == 1U)
+diff --git a/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.c b/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.c
+index 1a37445..8dd7958 100644
+--- a/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.c
++++ b/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.c
+@@ -113,8 +113,9 @@ void IfxVmt_clearSramStart(IfxVmt_MbistSel mbistSel)
+     {}
+ 
+     /* start init operation */
+-    mc->MCONTROL.U = (1 << IFX_VMT_MC_MCONTROL_SRAM_CLR_OFF) | (1 << IFX_VMT_MC_MCONTROL_START_OFF); /* START = SRAM_CLR = 1 */
+-    mc->MCONTROL.U &= ~(1 << IFX_VMT_MC_MCONTROL_SRAM_CLR_OFF);
++    uint16 mcontrolMask = 0x4000;
++    mc->MCONTROL.U = mcontrolMask | (1 << IFX_VMT_MC_MCONTROL_SRAM_CLR_OFF) | (1 << IFX_VMT_MC_MCONTROL_START_OFF); /* START = SRAM_CLR = 1 */
++    mc->MCONTROL.U = mcontrolMask | (1 << IFX_VMT_MC_MCONTROL_SRAM_CLR_OFF);
+ }
+ 
+ 
+@@ -927,3 +928,46 @@ uint32 IfxVmt_K3PrepareExtractStore(const IfxVmt_SramInfo **sramInfo, IfxVmt_K3P
+     return result;
+ }
+ #endif /* #if IFXVMT_K3_PREPARE_EXTRACT_STORE */
++
++void IfxVmt_clearStandbyram(IfxVmt_MbistSel mbistSel, uint32 standbyramsize)
++{
++    Ifx_VMT_MC *cpuDlmu;
++
++    /* only cpu0 and cpu1 is accepted because only cpu0/1 have stbyram */
++
++    if (mbistSel != IfxVmt_MbistSel_cpu0DlmuStby && mbistSel != IfxVmt_MbistSel_cpu1DlmuStby)
++    {
++        return;
++    }
++
++    if (standbyramsize > 0)
++    {
++        IfxVmt_enableMbistShell(mbistSel);
++
++        cpuDlmu = IfxVmt_getDmtuMcInstancePtr(mbistSel);
++
++        cpuDlmu->RDBFL[0].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[1].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[2].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[3].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[4].B.WDATA = 0x0003;
++        cpuDlmu->RDBFL[5].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[6].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[7].B.WDATA = 0x0000;
++        cpuDlmu->RDBFL[8].B.WDATA = 0x0300;
++
++        cpuDlmu->RANGE.B.RAEN = 1;
++        cpuDlmu->RANGE.B.ADDR = (0x7F << 7) + ((standbyramsize * 1024) / (256 * 16) & 0x7F);
++
++        cpuDlmu->MCONTROL.B.DINIT = 1;
++        cpuDlmu->MCONTROL.B.START = 1;
++        cpuDlmu->MCONTROL.B.START = 0;
++
++        while (!IfxVmt_isMbistDone(mbistSel))
++        {
++            __nop();
++        }
++
++        IfxVmt_disableMbistShell(mbistSel);
++    }
++}
+diff --git a/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.h b/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.h
+index 5dc640c..09c3696 100644
+--- a/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.h
++++ b/src/Libraries/iLLD/TC4xx/Tricore/Vmt/Std/IfxVmt.h
+@@ -1281,4 +1281,11 @@ IFX_INLINE void IfxVmt_getFailPostion(uint16 *rdbfl, uint8 towerNum, uint8 tower
+ }
+ #endif /* #if IFXVMT_GET_FAIL_POSITION */
+ 
++/** \brief Function to Clear the MBIST StandbySRAM (Synchronous mode).
++ * \param mbistSel Memory Selection
++ * \param standbyramsize Size of the Standby SRAM in Kilobytes
++ * \return None
++ */
++IFX_EXTERN void IfxVmt_clearStandbyram(IfxVmt_MbistSel mbistSel, uint32 standbyramsize);
++
+ #endif /* IFXVMT_H */
+diff --git a/src/Libraries/iLLD/TC4xx/Tricore/_Impl/IfxFlash_cfg_TC4Dx.h b/src/Libraries/iLLD/TC4xx/Tricore/_Impl/IfxFlash_cfg_TC4Dx.h
+index 109d5d3..b9f9338 100644
+--- a/src/Libraries/iLLD/TC4xx/Tricore/_Impl/IfxFlash_cfg_TC4Dx.h
++++ b/src/Libraries/iLLD/TC4xx/Tricore/_Impl/IfxFlash_cfg_TC4Dx.h
+@@ -76,7 +76,7 @@
+ 
+ /** \brief Number of DFLASH Banks
+  */
+-#define IFXFLASH_DFLASH_BANKS                            (2)
++#define IFXFLASH_DFLASH_BANKS                            (1)
+ 
+ /** \brief Dflash burst length in byte
+  */
+@@ -330,6 +330,14 @@
+  */
+ #define IFXFLASH_UCB0_END                                (0xAE413FFF)
+ 
++/** \brief FLASH Operation timeout
++ */
++#define IFXFLASH_OPERATION_TIMEOUT_1US                   ((uint32)IFX_CFG_CLOCK_SYSPLL_FREQUENCY/ 1000000) /**< \brief 1 us */
++
++/** \brief FLASH Operation timeout
++ */
++#define IFXFLASH_MAX_OPERATION_TIMEOUT                   ((uint32)0xFFFFFFFF)
++
+ /******************************************************************************/
+ /*-------------------------------Enumerations---------------------------------*/
+ /******************************************************************************/
+-- 
+2.34.1
+
